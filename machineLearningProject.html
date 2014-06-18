@@ -280,7 +280,6 @@ myTrim &lt;- function(df) {
 training &lt;- myTrim(training)
 midTest &lt;- myTrim(midTest)
 errorEstSample &lt;- myTrim(errorEstSample)
-testing &lt;- myTrim(testing)
 </code></pre>
 
 <p>##Model Prediction
@@ -343,7 +342,17 @@ modelList &lt;- list(modelBoot5 = modelBoot5, modelBoot10 = modelBoot10, modelBo
 
 # create accuracy estimates
 trainAccuracy &lt;- lapply(modelList, myAccTrain)
-testAccuracy &lt;- lapply(modelList, myAccTest)
+</code></pre>
+
+<pre><code>## 
+## Attaching package: &#39;e1071&#39;
+## 
+## The following object is masked from &#39;package:Hmisc&#39;:
+## 
+##     impute
+</code></pre>
+
+<pre><code class="r">testAccuracy &lt;- lapply(modelList, myAccTest)
 
 # combine and view results
 overview &lt;- cbind(names(modelList), trainAccuracy, testAccuracy)
@@ -357,8 +366,8 @@ overview
 ## modelBoot20 &quot;modelBoot20&quot; 0.7984        0.7814      
 ## modelBoot25 &quot;modelBoot25&quot; 0.8239        0.8131      
 ## modelRF1    &quot;modelRF1&quot;    1             0.995       
-## modelRF2    &quot;modelRF2&quot;    1             0.9939      
-## modelRF3    &quot;modelRF3&quot;    1             0.9936
+## modelRF2    &quot;modelRF2&quot;    1             0.9932      
+## modelRF3    &quot;modelRF3&quot;    1             0.9925
 </code></pre>
 
 <p>The bootstrapped rpart models improve their fit as we increase tuneLength (as would be expected given increased subpartitioning), but even with 25 levels they do not compare to the random forest model with achieves a near-perfect fit in all cases. ModelRF1 is chosen as the fit is excellent and the computation time is less than for models RF2 and RF3.</p>
@@ -373,7 +382,7 @@ estimatedOOSErrorRate &lt;- 1 - confMat$overall[[1]]  #1 - accuracy
 estimatedOOSErrorRate
 </code></pre>
 
-<pre><code>## [1] 0.007121
+<pre><code>## [1] 0.006104
 </code></pre>
 
 <h2>A little more detail.</h2>
@@ -408,17 +417,32 @@ importancePlot
 
 <p>All that is left is to apply the model to the supplied testing data. The resulting assignments can be seen below the r code:</p>
 
-<pre><code class="r">testPredictions &lt;- predict(modelRF1, newdata = testing)
-testStore$predicted_classe &lt;- testPredictions
+<pre><code class="r">testPredictions &lt;- predict(modelRF1, newdata = myTrim(testing))
+testing$predicted_classe &lt;- testPredictions
+head(testing[c(&quot;user_name&quot;, &quot;problem_id&quot;, &quot;predicted_classe&quot;)], n = 20)
 </code></pre>
 
-<pre><code>## Error: object &#39;testStore&#39; not found
-</code></pre>
-
-<pre><code class="r">head(testStore[c(&quot;user_name&quot;, &quot;problem_id&quot;, &quot;predicted_classe&quot;)], n = 20)
-</code></pre>
-
-<pre><code>## Error: object &#39;testStore&#39; not found
+<pre><code>##    user_name problem_id predicted_classe
+## 1      pedro          1                B
+## 2     jeremy          2                A
+## 3     jeremy          3                B
+## 4     adelmo          4                A
+## 5     eurico          5                A
+## 6     jeremy          6                E
+## 7     jeremy          7                D
+## 8     jeremy          8                B
+## 9   carlitos          9                A
+## 10   charles         10                A
+## 11  carlitos         11                B
+## 12    jeremy         12                C
+## 13    eurico         13                B
+## 14    jeremy         14                A
+## 15    jeremy         15                E
+## 16    eurico         16                E
+## 17     pedro         17                A
+## 18  carlitos         18                B
+## 19     pedro         19                B
+## 20    eurico         20                B
 </code></pre>
 
 </body>

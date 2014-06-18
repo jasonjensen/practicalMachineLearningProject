@@ -57,8 +57,6 @@ myTrim <- function(df) {
 training <- myTrim(training)
 midTest <- myTrim(midTest)
 errorEstSample <- myTrim(errorEstSample)
-testing <- myTrim(testing)
-
 ```
 
 ##Model Prediction
@@ -152,7 +150,7 @@ From the plot above it can be inferred that if we are limited in the number of s
 ## Predicting on the supplied test set
 All that is left is to apply the model to the supplied testing data. The resulting assignments can be seen below the r code:
 ```{r, "Testing data predictions", cache=FALSE, warning=FALSE}
-  testPredictions <- predict(modelRF1, newdata=testing)
+  testPredictions <- predict(modelRF1, newdata=myTrim(testing))
   testing$predicted_classe <- testPredictions
   head(testing[c("user_name", "problem_id", "predicted_classe")], n=20)
 ```

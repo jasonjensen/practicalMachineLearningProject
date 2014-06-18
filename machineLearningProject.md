@@ -105,7 +105,6 @@ myTrim <- function(df) {
 training <- myTrim(training)
 midTest <- myTrim(midTest)
 errorEstSample <- myTrim(errorEstSample)
-testing <- myTrim(testing)
 ```
 
 
@@ -177,6 +176,18 @@ modelList <- list(modelBoot5 = modelBoot5, modelBoot10 = modelBoot10, modelBoot1
 
 # create accuracy estimates
 trainAccuracy <- lapply(modelList, myAccTrain)
+```
+
+```
+## 
+## Attaching package: 'e1071'
+## 
+## The following object is masked from 'package:Hmisc':
+## 
+##     impute
+```
+
+```r
 testAccuracy <- lapply(modelList, myAccTest)
 
 # combine and view results
@@ -192,8 +203,8 @@ overview
 ## modelBoot20 "modelBoot20" 0.7984        0.7814      
 ## modelBoot25 "modelBoot25" 0.8239        0.8131      
 ## modelRF1    "modelRF1"    1             0.995       
-## modelRF2    "modelRF2"    1             0.9939      
-## modelRF3    "modelRF3"    1             0.9936
+## modelRF2    "modelRF2"    1             0.9932      
+## modelRF3    "modelRF3"    1             0.9925
 ```
 
 
@@ -210,7 +221,7 @@ estimatedOOSErrorRate
 ```
 
 ```
-## [1] 0.007121
+## [1] 0.006104
 ```
 
 ## A little more detail.
@@ -247,19 +258,32 @@ From the plot above it can be inferred that if we are limited in the number of s
 All that is left is to apply the model to the supplied testing data. The resulting assignments can be seen below the r code:
 
 ```r
-testPredictions <- predict(modelRF1, newdata = testing)
-testStore$predicted_classe <- testPredictions
+testPredictions <- predict(modelRF1, newdata = myTrim(testing))
+testing$predicted_classe <- testPredictions
+head(testing[c("user_name", "problem_id", "predicted_classe")], n = 20)
 ```
 
 ```
-## Error: object 'testStore' not found
-```
-
-```r
-head(testStore[c("user_name", "problem_id", "predicted_classe")], n = 20)
-```
-
-```
-## Error: object 'testStore' not found
+##    user_name problem_id predicted_classe
+## 1      pedro          1                B
+## 2     jeremy          2                A
+## 3     jeremy          3                B
+## 4     adelmo          4                A
+## 5     eurico          5                A
+## 6     jeremy          6                E
+## 7     jeremy          7                D
+## 8     jeremy          8                B
+## 9   carlitos          9                A
+## 10   charles         10                A
+## 11  carlitos         11                B
+## 12    jeremy         12                C
+## 13    eurico         13                B
+## 14    jeremy         14                A
+## 15    jeremy         15                E
+## 16    eurico         16                E
+## 17     pedro         17                A
+## 18  carlitos         18                B
+## 19     pedro         19                B
+## 20    eurico         20                B
 ```
 
