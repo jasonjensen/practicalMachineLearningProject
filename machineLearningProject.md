@@ -20,54 +20,12 @@ I chose 80%, 15%, and 5%, respectively for my training, midTest, and error estim
 
 ```r
 library(Hmisc)  #data exploration
-```
-
-```
-## Loading required package: grid
-## Loading required package: lattice
-## Loading required package: survival
-## Loading required package: splines
-## Loading required package: Formula
-## 
-## Attaching package: 'Hmisc'
-## 
-## The following objects are masked from 'package:base':
-## 
-##     format.pval, round.POSIXt, trunc.POSIXt, units
-```
-
-```r
 library(caret)  #machine learning
-```
-
-```
-## Loading required package: ggplot2
-## 
-## Attaching package: 'caret'
-## 
-## The following object is masked from 'package:survival':
-## 
-##     cluster
-```
-
-```r
 library(rpart)  #rpart caret method
 library(randomForest)  #random forest caret method
-```
-
-```
-## randomForest 4.6-7
-## Type rfNews() to see new features/changes/bug fixes.
-## 
-## Attaching package: 'randomForest'
-## 
-## The following object is masked from 'package:Hmisc':
-## 
-##     combine
-```
-
-```r
+library(e1071)  #confusion matrix
 library(ggplot2)  #plotting
+
 
 training <- read.csv("pml-training.csv")
 testing <- read.csv("pml-testing.csv")
@@ -84,7 +42,7 @@ training <- training[-inMidTest, ]
 ```
 
 
-##Cleaning the data
+## Cleaning the data
 The data is not initially suited for inclusion in a training model. First, there are a number of "bookkeeping" variables in the front which are not relevant to our goal of deriving classifications from sensor measurement data, so these must be cleared. 
 
 After a bit of exploration it also became clear that many of the variables contained mostly missing values and that the non-missing values in these variables were coded as factor variables. I created a helper function which (with a few warnings) strips these variables from the data frame. I then applied this helper function to all the data sets.
@@ -105,11 +63,10 @@ myTrim <- function(df) {
 training <- myTrim(training)
 midTest <- myTrim(midTest)
 errorEstSample <- myTrim(errorEstSample)
-testing <- myTrim(testing)
 ```
 
 
-##Model Prediction
+## Model Prediction
 As noted, I am fitting an array of models; mainly bootstrapped rpart and random forests of different lengths. The fitting is quite computationally intensive. A helpful [internet source](http://stackoverflow.com/questions/22200923/different-results-with-formula-and-non-formula-for-caret-training) suggested using a non-formula interface to speed up computations when there are no factor variables in the data set. As I cleared out the factor variables above, I call the train function with a matrix and a vector, rather than a formula and a data parameter.
 
 
@@ -118,18 +75,6 @@ As noted, I am fitting an array of models; mainly bootstrapped rpart and random 
 bootControl <- trainControl(method = "boot632", number = 25)
 modelBoot5 <- train(training[, 1:52], training$classe, method = "rpart", trControl = bootControl, 
     tuneLength = 5)
-```
-
-```
-## 
-## Attaching package: 'e1071'
-## 
-## The following object is masked from 'package:Hmisc':
-## 
-##     impute
-```
-
-```r
 modelBoot10 <- train(training[, 1:52], training$classe, method = "rpart", trControl = bootControl, 
     tuneLength = 10)
 modelBoot15 <- train(training[, 1:52], training$classe, method = "rpart", trControl = bootControl, 
@@ -192,8 +137,8 @@ overview
 ## modelBoot20 "modelBoot20" 0.7984        0.7814      
 ## modelBoot25 "modelBoot25" 0.8239        0.8131      
 ## modelRF1    "modelRF1"    1             0.995       
-## modelRF2    "modelRF2"    1             0.9939      
-## modelRF3    "modelRF3"    1             0.9936
+## modelRF2    "modelRF2"    1             0.9932      
+## modelRF3    "modelRF3"    1             0.9925
 ```
 
 
@@ -210,7 +155,7 @@ estimatedOOSErrorRate
 ```
 
 ```
-## [1] 0.007121
+## [1] 0.006104
 ```
 
 ## A little more detail.
@@ -232,8 +177,9 @@ impData$type <- ifelse(dumbbell, "dumbbell", impData$type)
 impData <- impData[order(impData$MeanDecreaseGini), ]
 impData$index <- 1:52
 
-importancePlot <- ggplot(impData, aes(index, MeanDecreaseGini, colour = factor(type), 
-    size = MeanDecreaseGini)) + geom_point() + labs(title = "Importance of Variables by Sensor Location")
+importancePlot <- ggplot(impData, aes(factor(type), MeanDecreaseGini, colour = factor(type), 
+    size = MeanDecreaseGini)) + geom_jitter() + labs(title = "Importance of Variables by Sensor Location", 
+    xlab = "")
 importancePlot
 ```
 
@@ -247,19 +193,32 @@ From the plot above it can be inferred that if we are limited in the number of s
 All that is left is to apply the model to the supplied testing data. The resulting assignments can be seen below the r code:
 
 ```r
-testPredictions <- predict(modelRF1, newdata = testing)
-testStore$predicted_classe <- testPredictions
+testPredictions <- predict(modelRF1, newdata = myTrim(testing))
+testing$predicted_classe <- testPredictions
+head(testing[c("user_name", "problem_id", "predicted_classe")], n = 20)
 ```
 
 ```
-## Error: object 'testStore' not found
-```
-
-```r
-head(testStore[c("user_name", "problem_id", "predicted_classe")], n = 20)
-```
-
-```
-## Error: object 'testStore' not found
+##    user_name problem_id predicted_classe
+## 1      pedro          1                B
+## 2     jeremy          2                A
+## 3     jeremy          3                B
+## 4     adelmo          4                A
+## 5     eurico          5                A
+## 6     jeremy          6                E
+## 7     jeremy          7                D
+## 8     jeremy          8                B
+## 9   carlitos          9                A
+## 10   charles         10                A
+## 11  carlitos         11                B
+## 12    jeremy         12                C
+## 13    eurico         13                B
+## 14    jeremy         14                A
+## 15    jeremy         15                E
+## 16    eurico         16                E
+## 17     pedro         17                A
+## 18  carlitos         18                B
+## 19     pedro         19                B
+## 20    eurico         20                B
 ```
 

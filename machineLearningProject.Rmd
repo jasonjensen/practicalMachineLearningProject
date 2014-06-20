@@ -17,12 +17,14 @@ I am a bit unsure exactly which methods will be most useful, so I will partition
 ## Load data
 I chose 80%, 15%, and 5%, respectively for my training, midTest, and error estimation samples. As these were partitioned sequentially from smallest to largest, the actual shares of the training data are  76%, 14.25%, and 5%, respectively.
 
-```{r, "Load Libraries and Data", cache=FALSE, warning=FALSE}
+```{r, "Load Libraries and Data", cache=FALSE, warning=FALSE, , message=FALSE}
 library(Hmisc)        #data exploration
 library(caret)        #machine learning
 library(rpart)        #rpart caret method
 library(randomForest) #random forest caret method
+library(e1071)        #confusion matrix
 library(ggplot2)      #plotting
+
 
 training <- read.csv("pml-training.csv")
 testing <- read.csv("pml-testing.csv")
@@ -37,7 +39,7 @@ midTest <- training[inMidTest,]
 training <- training[-inMidTest,]
 ```
 
-##Cleaning the data
+## Cleaning the data
 The data is not initially suited for inclusion in a training model. First, there are a number of "bookkeeping" variables in the front which are not relevant to our goal of deriving classifications from sensor measurement data, so these must be cleared. 
 
 After a bit of exploration it also became clear that many of the variables contained mostly missing values and that the non-missing values in these variables were coded as factor variables. I created a helper function which (with a few warnings) strips these variables from the data frame. I then applied this helper function to all the data sets.
@@ -57,14 +59,12 @@ myTrim <- function(df) {
 training <- myTrim(training)
 midTest <- myTrim(midTest)
 errorEstSample <- myTrim(errorEstSample)
-testing <- myTrim(testing)
-
 ```
 
-##Model Prediction
+## Model Prediction
 As noted, I am fitting an array of models; mainly bootstrapped rpart and random forests of different lengths. The fitting is quite computationally intensive. A helpful [internet source](http://stackoverflow.com/questions/22200923/different-results-with-formula-and-non-formula-for-caret-training) suggested using a non-formula interface to speed up computations when there are no factor variables in the data set. As I cleared out the factor variables above, I call the train function with a matrix and a vector, rather than a formula and a data parameter.
 
-```{r, "Prediction Model rpart", cache=TRUE, warning=FALSE}
+```{r, "Prediction Model rpart", cache=TRUE, warning=FALSE, , message=FALSE}
 #vary rpart tuneLength: 5-25
 bootControl <- trainControl(method = "boot632", number = 25)
 modelBoot5 <- train(training[,1:52], training$classe, method="rpart", trControl = bootControl, tuneLength = 5)
@@ -141,8 +141,8 @@ Random forests are hard to interpret, but the impratance variable does help this
   impData$type <- ifelse(dumbbell, "dumbbell", impData$type)
   impData <- impData[order(impData$MeanDecreaseGini),]
   impData$index <- 1:52
-  
-importancePlot <- ggplot(impData, aes(index, MeanDecreaseGini,  colour = factor(type), size= MeanDecreaseGini)) + geom_point() + labs(title = "Importance of Variables by Sensor Location")
+
+importancePlot <- ggplot(impData, aes(factor(type), MeanDecreaseGini, colour = factor(type), size= MeanDecreaseGini)) + geom_jitter() + labs(title = "Importance of Variables by Sensor Location", xlab = "")
   importancePlot
 ```
 
@@ -152,7 +152,7 @@ From the plot above it can be inferred that if we are limited in the number of s
 ## Predicting on the supplied test set
 All that is left is to apply the model to the supplied testing data. The resulting assignments can be seen below the r code:
 ```{r, "Testing data predictions", cache=FALSE, warning=FALSE}
-  testPredictions <- predict(modelRF1, newdata=testing)
+  testPredictions <- predict(modelRF1, newdata=myTrim(testing))
   testing$predicted_classe <- testPredictions
   head(testing[c("user_name", "problem_id", "predicted_classe")], n=20)
 ```
