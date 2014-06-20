@@ -20,54 +20,12 @@ I chose 80%, 15%, and 5%, respectively for my training, midTest, and error estim
 
 ```r
 library(Hmisc)  #data exploration
-```
-
-```
-## Loading required package: grid
-## Loading required package: lattice
-## Loading required package: survival
-## Loading required package: splines
-## Loading required package: Formula
-## 
-## Attaching package: 'Hmisc'
-## 
-## The following objects are masked from 'package:base':
-## 
-##     format.pval, round.POSIXt, trunc.POSIXt, units
-```
-
-```r
 library(caret)  #machine learning
-```
-
-```
-## Loading required package: ggplot2
-## 
-## Attaching package: 'caret'
-## 
-## The following object is masked from 'package:survival':
-## 
-##     cluster
-```
-
-```r
 library(rpart)  #rpart caret method
 library(randomForest)  #random forest caret method
-```
-
-```
-## randomForest 4.6-7
-## Type rfNews() to see new features/changes/bug fixes.
-## 
-## Attaching package: 'randomForest'
-## 
-## The following object is masked from 'package:Hmisc':
-## 
-##     combine
-```
-
-```r
+library(e1071)  #confusion matrix
 library(ggplot2)  #plotting
+
 
 training <- read.csv("pml-training.csv")
 testing <- read.csv("pml-testing.csv")
@@ -84,7 +42,7 @@ training <- training[-inMidTest, ]
 ```
 
 
-##Cleaning the data
+## Cleaning the data
 The data is not initially suited for inclusion in a training model. First, there are a number of "bookkeeping" variables in the front which are not relevant to our goal of deriving classifications from sensor measurement data, so these must be cleared. 
 
 After a bit of exploration it also became clear that many of the variables contained mostly missing values and that the non-missing values in these variables were coded as factor variables. I created a helper function which (with a few warnings) strips these variables from the data frame. I then applied this helper function to all the data sets.
@@ -108,7 +66,7 @@ errorEstSample <- myTrim(errorEstSample)
 ```
 
 
-##Model Prediction
+## Model Prediction
 As noted, I am fitting an array of models; mainly bootstrapped rpart and random forests of different lengths. The fitting is quite computationally intensive. A helpful [internet source](http://stackoverflow.com/questions/22200923/different-results-with-formula-and-non-formula-for-caret-training) suggested using a non-formula interface to speed up computations when there are no factor variables in the data set. As I cleared out the factor variables above, I call the train function with a matrix and a vector, rather than a formula and a data parameter.
 
 
@@ -117,18 +75,6 @@ As noted, I am fitting an array of models; mainly bootstrapped rpart and random 
 bootControl <- trainControl(method = "boot632", number = 25)
 modelBoot5 <- train(training[, 1:52], training$classe, method = "rpart", trControl = bootControl, 
     tuneLength = 5)
-```
-
-```
-## 
-## Attaching package: 'e1071'
-## 
-## The following object is masked from 'package:Hmisc':
-## 
-##     impute
-```
-
-```r
 modelBoot10 <- train(training[, 1:52], training$classe, method = "rpart", trControl = bootControl, 
     tuneLength = 10)
 modelBoot15 <- train(training[, 1:52], training$classe, method = "rpart", trControl = bootControl, 
@@ -176,18 +122,6 @@ modelList <- list(modelBoot5 = modelBoot5, modelBoot10 = modelBoot10, modelBoot1
 
 # create accuracy estimates
 trainAccuracy <- lapply(modelList, myAccTrain)
-```
-
-```
-## 
-## Attaching package: 'e1071'
-## 
-## The following object is masked from 'package:Hmisc':
-## 
-##     impute
-```
-
-```r
 testAccuracy <- lapply(modelList, myAccTest)
 
 # combine and view results
@@ -243,8 +177,9 @@ impData$type <- ifelse(dumbbell, "dumbbell", impData$type)
 impData <- impData[order(impData$MeanDecreaseGini), ]
 impData$index <- 1:52
 
-importancePlot <- ggplot(impData, aes(index, MeanDecreaseGini, colour = factor(type), 
-    size = MeanDecreaseGini)) + geom_point() + labs(title = "Importance of Variables by Sensor Location")
+importancePlot <- ggplot(impData, aes(factor(type), MeanDecreaseGini, colour = factor(type), 
+    size = MeanDecreaseGini)) + geom_jitter() + labs(title = "Importance of Variables by Sensor Location", 
+    xlab = "")
 importancePlot
 ```
 
